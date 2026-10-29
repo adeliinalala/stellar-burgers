@@ -1,42 +1,73 @@
-import { Preloader, OrderInfoUI } from '@ui';
-import { useMemo } from 'react';
+import { OrderInfoUI, Preloader } from '@ui';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 
-import type { TIngredient } from '@utils-types';
+import { useSelector } from '../../services/store';
+import { getOrderByNumberApi } from '../../utils/burger-api';
+
+import type { TIngredient, TOrder } from '@utils-types';
+
+type TIngredientsWithCount = Record<string, TIngredient & { count: number }>;
 
 export const OrderInfo = (): React.JSX.Element => {
-  /** TODO: взять переменные orderData и ingredients из стора */
-  const orderData = {
-    createdAt: '',
-    ingredients: [],
-    _id: '',
-    status: '',
-    name: '',
-    updatedAt: 'string',
-    number: 0,
-  };
+  const { number } = useParams<{ number: string }>();
 
-  const ingredients: TIngredient[] = [];
+  const feedOrders = useSelector((state) => state.feed.orders);
+  const ingredients = useSelector(
+    (state): TIngredient[] => state.ingredients.ingredients
+  );
 
-  /* Готовим данные для отображения */
+  const [loadedOrder, setLoadedOrder] = useState<TOrder | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const orderFromFeed = feedOrders.find((order) => order.number === Number(number));
+
+  useEffect(() => {
+    if (!number || orderFromFeed) return;
+
+    let isMounted = true;
+    setIsLoading(true);
+
+    getOrderByNumberApi(Number(number))
+      .then((response) => {
+        if (isMounted) {
+          setLoadedOrder(response.orders[0] ?? null);
+        }
+      })
+      .catch((error: unknown) => {
+        console.error('Не удалось загрузить заказ:', error);
+        if (isMounted) {
+          setLoadedOrder(null);
+        }
+      })
+      .finally((): void => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return (): void => {
+      isMounted = false;
+    };
+  }, [number, orderFromFeed]);
+
+  const orderData = orderFromFeed ?? loadedOrder;
+
   const orderInfo = useMemo(() => {
     if (!orderData || !ingredients.length) return null;
 
     const date = new Date(orderData.createdAt);
 
-    type TIngredientsWithCount = Record<string, TIngredient & { count: number }>;
-
     const ingredientsInfo = orderData.ingredients.reduce(
-      (acc: TIngredientsWithCount, item) => {
-        if (!acc[item]) {
-          const ingredient = ingredients.find((ing) => ing._id === item);
-          if (ingredient) {
-            acc[item] = {
-              ...ingredient,
-              count: 1,
-            };
-          }
+      (acc: TIngredientsWithCount, ingredientId): TIngredientsWithCount => {
+        const ingredient = ingredients.find((item) => item._id === ingredientId);
+
+        if (!ingredient) return acc;
+
+        if (!acc[ingredientId]) {
+          acc[ingredientId] = { ...ingredient, count: 1 };
         } else {
-          acc[item].count++;
+          acc[ingredientId].count += 1;
         }
 
         return acc;
@@ -45,7 +76,7 @@ export const OrderInfo = (): React.JSX.Element => {
     );
 
     const total = Object.values(ingredientsInfo).reduce(
-      (acc, item) => acc + item.price * item.count,
+      (sum, ingredient) => sum + ingredient.price * ingredient.count,
       0
     );
 
@@ -57,7 +88,7 @@ export const OrderInfo = (): React.JSX.Element => {
     };
   }, [orderData, ingredients]);
 
-  if (!orderInfo) {
+  if (isLoading || !orderInfo) {
     return <Preloader />;
   }
 

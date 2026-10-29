@@ -1,3 +1,6 @@
+import type { MouseEventHandler } from 'react';
+
 export type TAppHeaderUIProps = {
-  userName: string | undefined;
+  userName?: string;
+  onLogout: MouseEventHandler<HTMLButtonElement>;
 };

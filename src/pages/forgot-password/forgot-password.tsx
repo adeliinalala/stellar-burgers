@@ -5,28 +5,42 @@ import { useNavigate } from 'react-router-dom';
 
 export const ForgotPassword = (): React.JSX.Element => {
   const [email, setEmail] = useState('');
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
 
-  const handleSubmit = (e: SyntheticEvent): void => {
+  const handleSubmit = async (e: SyntheticEvent): Promise<void> => {
     e.preventDefault();
 
+    if (isLoading) return;
+
     setError(null);
-    void forgotPasswordApi({ email })
-      .then(() => {
-        localStorage.setItem('resetPassword', 'true');
-        void navigate('/reset-password', { replace: true });
-      })
-      .catch((err: Error) => setError(err));
+    setIsLoading(true);
+
+    try {
+      await forgotPasswordApi({ email });
+      localStorage.setItem('resetPassword', 'true');
+      void navigate('/reset-password', { replace: true });
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Не удалось отправить запрос на восстановление пароля'
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <ForgotPasswordUI
-      errorText={error?.message}
+      errorText={error ?? undefined}
       email={email}
       setEmail={setEmail}
-      handleSubmit={handleSubmit}
+      handleSubmit={(e) => {
+        void handleSubmit(e);
+      }}
     />
   );
 };

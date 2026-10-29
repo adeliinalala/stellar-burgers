@@ -36,3 +36,12 @@
   align-items: center;
   margin: 0 auto;
 }
+
+.logout {
+  padding: 8px 12px;
+  color: inherit;
+  background: transparent;
+  border: 1px solid currentcolor;
+  border-radius: 8px;
+  cursor: pointer;
+}
