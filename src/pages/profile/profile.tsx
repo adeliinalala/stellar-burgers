@@ -1,59 +1,99 @@
 import { ProfileUI } from '@ui-pages';
-import { type SyntheticEvent, useEffect, useState } from 'react';
+import { useEffect, useState, type ChangeEvent, type SyntheticEvent } from 'react';
+
+import { useDispatch, useSelector } from '../../services/store';
+import { updateUser } from '../../slices/userSlice';
 
 export const Profile = (): React.JSX.Element => {
-  /** TODO: Взять переменную из стора */
-  const user = {
-    name: '',
-    email: '',
-  };
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.user.user);
 
   const [formValue, setFormValue] = useState({
-    name: user.name,
-    email: user.email,
+    name: user?.name ?? '',
+    email: user?.email ?? '',
     password: '',
   });
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState('');
+
   useEffect(() => {
-    setFormValue((prevState) => ({
-      ...prevState,
-      name: user?.name || '',
-      email: user?.email || '',
-    }));
+    setFormValue({
+      name: user?.name ?? '',
+      email: user?.email ?? '',
+      password: '',
+    });
   }, [user]);
 
   const isFormChanged =
-    formValue.name !== user?.name ||
-    formValue.email !== user?.email ||
-    !!formValue.password;
+    formValue.name !== (user?.name ?? '') ||
+    formValue.email !== (user?.email ?? '') ||
+    Boolean(formValue.password);
 
-  const handleSubmit = (e: SyntheticEvent): void => {
-    e.preventDefault();
-  };
-
-  const handleCancel = (e: SyntheticEvent): void => {
-    e.preventDefault();
-    setFormValue({
-      name: user.name,
-      email: user.email,
-      password: '',
-    });
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setFormValue((prevState) => ({
-      ...prevState,
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>): void => {
+    setFormValue((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
     }));
   };
 
+  const handleCancel = (e: SyntheticEvent): void => {
+    e.preventDefault();
+
+    setFormValue({
+      name: user?.name ?? '',
+      email: user?.email ?? '',
+      password: '',
+    });
+
+    setError('');
+  };
+
+  const handleSubmit = async (e: SyntheticEvent): Promise<void> => {
+    e.preventDefault();
+    setError('');
+
+    if (!isFormChanged || isSaving) return;
+
+    setIsSaving(true);
+
+    try {
+      const data: { name: string; email: string; password?: string } = {
+        name: formValue.name,
+        email: formValue.email,
+      };
+
+      if (formValue.password) {
+        data.password = formValue.password;
+      }
+
+      const updatedUser = await dispatch(updateUser(data)).unwrap();
+
+      setFormValue({
+        name: updatedUser.name,
+        email: updatedUser.email,
+        password: '',
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось сохранить изменения');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <ProfileUI
-      formValue={formValue}
-      isFormChanged={isFormChanged}
-      handleCancel={handleCancel}
-      handleSubmit={handleSubmit}
-      handleInputChange={handleInputChange}
-    />
+    <>
+      <ProfileUI
+        formValue={formValue}
+        isFormChanged={isFormChanged}
+        handleCancel={handleCancel}
+        handleSubmit={(e) => {
+          void handleSubmit(e);
+        }}
+        handleInputChange={handleInputChange}
+      />
+      {error && <p role="alert">{error}</p>}
+      {isSaving && <p>Сохранение...</p>}
+    </>
   );
 };

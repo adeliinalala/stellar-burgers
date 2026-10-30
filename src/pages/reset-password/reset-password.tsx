@@ -7,19 +7,8 @@ export const ResetPassword = (): React.JSX.Element => {
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [token, setToken] = useState('');
-  const [error, setError] = useState<Error | null>(null);
-
-  const handleSubmit = (e: SyntheticEvent): void => {
-    e.preventDefault();
-
-    setError(null);
-    void resetPasswordApi({ password, token })
-      .then(() => {
-        localStorage.removeItem('resetPassword');
-        void navigate('/login');
-      })
-      .catch((err: Error) => setError(err));
-  };
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!localStorage.getItem('resetPassword')) {
@@ -27,14 +16,35 @@ export const ResetPassword = (): React.JSX.Element => {
     }
   }, [navigate]);
 
+  const handleSubmit = async (e: SyntheticEvent): Promise<void> => {
+    e.preventDefault();
+
+    if (isLoading) return;
+
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      await resetPasswordApi({ password, token });
+      localStorage.removeItem('resetPassword');
+      void navigate('/login', { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось восстановить пароль');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <ResetPasswordUI
-      errorText={error?.message}
+      errorText={error ?? undefined}
       password={password}
       token={token}
       setPassword={setPassword}
       setToken={setToken}
-      handleSubmit={handleSubmit}
+      handleSubmit={(e) => {
+        void handleSubmit(e);
+      }}
     />
   );
 };
