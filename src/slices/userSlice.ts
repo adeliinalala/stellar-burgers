@@ -5,6 +5,7 @@ import {
   loginUserApi,
   registerUserApi,
   logoutApi,
+  updateUserApi,
 } from '../utils/burger-api';
 import { setCookie } from '../utils/cookie';
 
@@ -50,6 +51,15 @@ export const registerUser = createAsyncThunk(
     localStorage.setItem('refreshToken', response.refreshToken);
     setCookie('accessToken', response.accessToken);
 
+    return response.user;
+  }
+);
+
+// Обновление профиля
+export const updateUser = createAsyncThunk(
+  'user/updateUser',
+  async (data: Partial<TRegisterData>) => {
+    const response = await updateUserApi(data);
     return response.user;
   }
 );
@@ -116,6 +126,20 @@ const userSlice = createSlice({
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message ?? 'Не удалось зарегистрироваться';
+      })
+
+      // Обновление профиля
+      .addCase(updateUser.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateUser.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+      })
+      .addCase(updateUser.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.error.message ?? 'Не удалось обновить профиль';
       })
 
       // Выход

@@ -2,8 +2,7 @@ import { ProfileUI } from '@ui-pages';
 import { useEffect, useState, type ChangeEvent, type SyntheticEvent } from 'react';
 
 import { useDispatch, useSelector } from '../../services/store';
-import { setUser } from '../../slices/userSlice';
-import { updateUserApi } from '../../utils/burger-api';
+import { updateUser } from '../../slices/userSlice';
 
 export const Profile = (): React.JSX.Element => {
   const dispatch = useDispatch();
@@ -40,11 +39,13 @@ export const Profile = (): React.JSX.Element => {
 
   const handleCancel = (e: SyntheticEvent): void => {
     e.preventDefault();
+
     setFormValue({
       name: user?.name ?? '',
       email: user?.email ?? '',
       password: '',
     });
+
     setError('');
   };
 
@@ -66,13 +67,11 @@ export const Profile = (): React.JSX.Element => {
         data.password = formValue.password;
       }
 
-      const response = await updateUserApi(data);
-
-      dispatch(setUser(response.user));
+      const updatedUser = await dispatch(updateUser(data)).unwrap();
 
       setFormValue({
-        name: response.user.name,
-        email: response.user.email,
+        name: updatedUser.name,
+        email: updatedUser.email,
         password: '',
       });
     } catch (err) {

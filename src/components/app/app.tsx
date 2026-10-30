@@ -28,6 +28,7 @@ type TProtectedRouteProps = {
 
 type TAppLocationState = {
   background?: ReturnType<typeof useLocation>;
+  from?: ReturnType<typeof useLocation>;
 };
 
 const ProtectedRoute = ({ children }: TProtectedRouteProps): React.JSX.Element => {
@@ -47,13 +48,17 @@ const ProtectedRoute = ({ children }: TProtectedRouteProps): React.JSX.Element =
 
 const OnlyUnAuthRoute = ({ children }: TProtectedRouteProps): React.JSX.Element => {
   const { user, isAuthChecked } = useSelector((state) => state.user);
+  const location = useLocation();
+
+  const locationState = location.state as TAppLocationState | null;
+  const from = locationState?.from ?? '/';
 
   if (!isAuthChecked) {
     return <Preloader />;
   }
 
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={from} replace />;
   }
 
   return <>{children}</>;

@@ -1,12 +1,11 @@
 import { BurgerConstructorUI } from '@ui';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { useDispatch, useSelector } from '../../services/store';
-import { clearConstructor } from '../../slices/constructorSlice';
-import { orderBurgerApi } from '../../utils/burger-api';
+import { createOrder, clearOrderData } from '../../slices/orderSlice';
 
-import type { TConstructorIngredient, TConstructorState, TOrder } from '@utils-types';
+import type { TConstructorIngredient, TConstructorState } from '@utils-types';
 
 export const BurgerConstructor = (): React.JSX.Element => {
   const dispatch = useDispatch();
@@ -19,10 +18,10 @@ export const BurgerConstructor = (): React.JSX.Element => {
 
   const user = useSelector((state) => state.user.user);
 
-  const [orderRequest, setOrderRequest] = useState(false);
-  const [orderModalData, setOrderModalData] = useState<TOrder | null>(null);
+  const orderRequest = useSelector((state) => state.order.orderRequest);
+  const orderModalData = useSelector((state) => state.order.orderModalData);
 
-  const onOrderClick = async (): Promise<void> => {
+  const onOrderClick = (): void => {
     if (!constructorItems.bun || orderRequest) {
       return;
     }
@@ -34,30 +33,19 @@ export const BurgerConstructor = (): React.JSX.Element => {
       return;
     }
 
-    setOrderRequest(true);
+    const ingredientIds = [
+      constructorItems.bun._id,
+      ...constructorItems.ingredients.map(
+        (ingredient: TConstructorIngredient) => ingredient._id
+      ),
+      constructorItems.bun._id,
+    ];
 
-    try {
-      const ingredientIds = [
-        constructorItems.bun._id,
-        ...constructorItems.ingredients.map(
-          (ingredient: TConstructorIngredient) => ingredient._id
-        ),
-        constructorItems.bun._id,
-      ];
-
-      const response = await orderBurgerApi(ingredientIds);
-
-      setOrderModalData(response.order);
-      dispatch(clearConstructor());
-    } catch (error) {
-      console.error('Не удалось оформить заказ:', error);
-    } finally {
-      setOrderRequest(false);
-    }
+    void dispatch(createOrder(ingredientIds));
   };
 
   const closeOrderModal = (): void => {
-    setOrderModalData(null);
+    dispatch(clearOrderData());
   };
 
   const price = useMemo(
@@ -76,9 +64,7 @@ export const BurgerConstructor = (): React.JSX.Element => {
       orderRequest={orderRequest}
       constructorItems={constructorItems}
       orderModalData={orderModalData}
-      onOrderClick={() => {
-        void onOrderClick();
-      }}
+      onOrderClick={onOrderClick}
       closeOrderModal={closeOrderModal}
     />
   );

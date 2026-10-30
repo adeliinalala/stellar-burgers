@@ -1,9 +1,9 @@
 import { OrderInfoUI, Preloader } from '@ui';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
-import { useSelector } from '../../services/store';
-import { getOrderByNumberApi } from '../../utils/burger-api';
+import { useDispatch, useSelector } from '../../services/store';
+import { fetchOrderByNumber } from '../../slices/orderInfoSlice';
 
 import type { TIngredient, TOrder } from '@utils-types';
 
@@ -11,47 +11,29 @@ type TIngredientsWithCount = Record<string, TIngredient & { count: number }>;
 
 export const OrderInfo = (): React.JSX.Element => {
   const { number } = useParams<{ number: string }>();
+  const dispatch = useDispatch();
 
   const feedOrders = useSelector((state) => state.feed.orders);
+  const profileOrders = useSelector((state) => state.profileOrders.orders);
   const ingredients = useSelector(
     (state): TIngredient[] => state.ingredients.ingredients
   );
 
-  const [loadedOrder, setLoadedOrder] = useState<TOrder | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const loadedOrder = useSelector((state) => state.orderInfo.order);
+  const isLoading = useSelector((state) => state.orderInfo.isLoading);
+  const error = useSelector((state) => state.orderInfo.error);
 
-  const orderFromFeed = feedOrders.find((order) => order.number === Number(number));
+  const orderFromLists =
+    feedOrders.find((order) => order.number === Number(number)) ??
+    profileOrders.find((order) => order.number === Number(number));
 
   useEffect(() => {
-    if (!number || orderFromFeed) return;
+    if (!number || orderFromLists) return;
 
-    let isMounted = true;
-    setIsLoading(true);
+    void dispatch(fetchOrderByNumber(Number(number)));
+  }, [dispatch, number, orderFromLists]);
 
-    getOrderByNumberApi(Number(number))
-      .then((response) => {
-        if (isMounted) {
-          setLoadedOrder(response.orders[0] ?? null);
-        }
-      })
-      .catch((error: unknown) => {
-        console.error('Не удалось загрузить заказ:', error);
-        if (isMounted) {
-          setLoadedOrder(null);
-        }
-      })
-      .finally((): void => {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      });
-
-    return (): void => {
-      isMounted = false;
-    };
-  }, [number, orderFromFeed]);
-
-  const orderData = orderFromFeed ?? loadedOrder;
+  const orderData: TOrder | null = orderFromLists ?? loadedOrder;
 
   const orderInfo = useMemo(() => {
     if (!orderData || !ingredients.length) return null;
@@ -88,8 +70,12 @@ export const OrderInfo = (): React.JSX.Element => {
     };
   }, [orderData, ingredients]);
 
-  if (isLoading || !orderInfo) {
+  if (isLoading && !orderInfo) {
     return <Preloader />;
+  }
+
+  if (error || !orderInfo) {
+    return <p>{error ?? 'Заказ не найден'}</p>;
   }
 
   return <OrderInfoUI orderInfo={orderInfo} />;

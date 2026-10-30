@@ -1,6 +1,5 @@
 import { RegisterUI } from '@ui-pages';
 import { type SyntheticEvent, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 import { useDispatch, useSelector } from '../../services/store';
 import { registerUser } from '../../slices/userSlice';
@@ -11,7 +10,6 @@ export const Register = (): React.JSX.Element => {
   const [password, setPassword] = useState('');
 
   const dispatch = useDispatch();
-  const navigate = useNavigate();
 
   const { error } = useSelector((state) => state.user);
 
@@ -26,9 +24,6 @@ export const Register = (): React.JSX.Element => {
       })
     )
       .unwrap()
-      .then(() => {
-        void navigate('/', { replace: true });
-      })
       .catch((err: unknown) => {
         console.error('Не удалось зарегистрировать пользователя:', err);
       });
