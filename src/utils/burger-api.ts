@@ -250,3 +250,5 @@ export const logoutApi = (): Promise<TServerResponse> =>
       token: localStorage.getItem('refreshToken'),
     }),
   }).then((res) => checkResponse<TServerResponse>(res));
+
+export const WS_URL = URL?.replace(/^http/, 'ws').replace(/\/api\/?$/, '');

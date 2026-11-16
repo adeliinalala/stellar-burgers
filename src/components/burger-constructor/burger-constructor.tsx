@@ -1,31 +1,58 @@
 import { BurgerConstructorUI } from '@ui';
 import { useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
-import type { TConstructorIngredient, TConstructorState, TOrder } from '@utils-types';
+import { useDispatch, useSelector } from '../../services/store';
+import { createOrder, clearOrderData } from '../../slices/orderSlice';
 
-export const BurgerConstructor = (): React.JSX.Element | null => {
-  /** TODO: Взять переменные constructorItems, orderRequest и orderModalData из стора */
-  const constructorItems: TConstructorState = {
-    bun: null,
-    ingredients: [],
-  };
-  const orderRequest = false;
-  const orderModalData: TOrder | null = null;
+import type { TConstructorIngredient, TConstructorState } from '@utils-types';
+
+export const BurgerConstructor = (): React.JSX.Element => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const constructorItems = useSelector(
+    (state): TConstructorState => state.burgerConstructor
+  );
+
+  const user = useSelector((state) => state.user.user);
+
+  const orderRequest = useSelector((state) => state.order.orderRequest);
+  const orderModalData = useSelector((state) => state.order.orderModalData);
 
   const onOrderClick = (): void => {
-    if (!constructorItems.bun || orderRequest) return;
-    // TODO: Оформить заказ
+    if (!constructorItems.bun || orderRequest) {
+      return;
+    }
+
+    if (!user) {
+      void navigate('/login', {
+        state: { from: location },
+      });
+      return;
+    }
+
+    const ingredientIds = [
+      constructorItems.bun._id,
+      ...constructorItems.ingredients.map(
+        (ingredient: TConstructorIngredient) => ingredient._id
+      ),
+      constructorItems.bun._id,
+    ];
+
+    void dispatch(createOrder(ingredientIds));
   };
 
   const closeOrderModal = (): void => {
-    // TODO: Закрыть модальное окно и сбросить заказ
+    dispatch(clearOrderData());
   };
 
   const price = useMemo(
     () =>
       (constructorItems.bun ? constructorItems.bun.price * 2 : 0) +
       constructorItems.ingredients.reduce(
-        (s: number, v: TConstructorIngredient) => s + v.price,
+        (sum: number, ingredient: TConstructorIngredient) => sum + ingredient.price,
         0
       ),
     [constructorItems]
