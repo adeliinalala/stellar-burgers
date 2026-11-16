@@ -114,7 +114,7 @@ describe('constructorSlice', () => {
       ingredients: [firstIngredient, secondIngredient],
     };
 
-    const newState = reducer(state, moveIngredient({ fromIndex: -1, toIndex: 5 }));
+    const newState = reducer(state, moveIngredient({ fromIndex: 0, toIndex: 5 }));
 
     expect(newState.ingredients).toEqual(state.ingredients);
   });

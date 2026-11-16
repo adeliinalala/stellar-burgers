@@ -43,18 +43,29 @@ describe('ingredientsSlice', () => {
   });
 
   test('should handle fetchIngredients.pending', () => {
+    const stateWithError = {
+      ...initialState,
+      error: 'Previous error',
+    };
+
     const action = fetchIngredients.pending('request-id');
 
-    const state = reducer(initialState, action);
+    const state = reducer(stateWithError, action);
 
     expect(state.isLoading).toBe(true);
     expect(state.error).toBeNull();
   });
 
   test('should handle fetchIngredients.fulfilled', () => {
+    const loadingState = {
+      ingredients: [],
+      isLoading: true,
+      error: 'Previous error',
+    };
+
     const action = fetchIngredients.fulfilled(mockIngredients, 'request-id');
 
-    const state = reducer(initialState, action);
+    const state = reducer(loadingState, action);
 
     expect(state.ingredients).toEqual(mockIngredients);
     expect(state.isLoading).toBe(false);
@@ -62,21 +73,33 @@ describe('ingredientsSlice', () => {
   });
 
   test('should handle fetchIngredients.rejected', () => {
+    const loadingState = {
+      ingredients: [],
+      isLoading: true,
+      error: null,
+    };
+
     const action = fetchIngredients.rejected(new Error('Network error'), 'request-id');
 
-    const state = reducer(initialState, action);
+    const state = reducer(loadingState, action);
 
     expect(state.isLoading).toBe(false);
     expect(state.error).toBe('Network error');
   });
 
   test('should use default error message when error message is missing', () => {
+    const loadingState = {
+      ingredients: [],
+      isLoading: true,
+      error: null,
+    };
+
     const action = {
       type: fetchIngredients.rejected.type,
       error: {},
     };
 
-    const state = reducer(initialState, action);
+    const state = reducer(loadingState, action);
 
     expect(state.isLoading).toBe(false);
     expect(state.error).toBe('Не удалось загрузить ингредиенты');
