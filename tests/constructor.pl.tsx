@@ -86,7 +86,6 @@ test.describe('Burger constructor', () => {
   });
 
   test('user can create an order', async ({ page, context }) => {
-    // Устанавливаем accessToken в cookie
     await context.addCookies([
       {
         name: 'accessToken',
@@ -95,15 +94,12 @@ test.describe('Burger constructor', () => {
       }
     ]);
 
-    // Устанавливаем refreshToken в localStorage
     await page.addInitScript(() => {
       localStorage.setItem('refreshToken', 'test-refresh-token');
     });
 
-    // Перезагружаем страницу, чтобы приложение проверило авторизацию
     await page.reload();
 
-    // Добавляем булку и начинку
     const bunCard = page.locator('li').filter({
       hasText: 'Тестовая булка'
     });
@@ -115,17 +111,17 @@ test.describe('Burger constructor', () => {
     await bunCard.getByRole('button', { name: 'Добавить' }).click();
     await mainCard.getByRole('button', { name: 'Добавить' }).click();
 
-    // Оформляем заказ
+    
     await page.getByRole('button', { name: 'Оформить заказ' }).click();
 
-    // Проверяем номер заказа
+    
     await expect(page.getByText('12345', { exact: true })).toBeVisible();
 
-    // Проверяем, что конструктор очистился
+    
     await expect(page.getByText('Выберите булки').first()).toBeVisible();
     await expect(page.getByText('Выберите начинку')).toBeVisible();
 
-    // Закрываем модальное окно
+    
     await page.getByRole('button', { name: 'Закрыть' }).click();
 
     await expect(page.getByText('12345', { exact: true })).not.toBeVisible();
